@@ -11,6 +11,7 @@ class main(pyglet.window.Window):
     def __init__ (self, width=800, height=600, fps=False, *args, **kwargs):
         super(main, self).__init__(width, height, *args, **kwargs)
 
+        self.mouse = [0,0]
         self.keys = {}
         self.alive = 1
         
@@ -46,12 +47,25 @@ class main(pyglet.window.Window):
         self.car.draw()
         self.flip()
 
+    def on_mouse_motion(self, x, y, dx, dy):
+        self.mouse[0] += dx
+        self.mouse[1] += dy
+        print(x," ",y)
+        pass
+
     def run(self):
         while self.alive == 1:
             event = self.dispatch_events()
+
             if key.A in self.keys and key.W in self.keys: #todo change from if to smth else to make controls work properly
-                print('sdawd')
                 self.car.position = [self.car.position[0] - 1, self.car.position[1] + 1, self.car.position[2]]
+            if key.D in self.keys and key.W in self.keys: 
+                self.car.position = [self.car.position[0] + 1, self.car.position[1] + 1, self.car.position[2]]
+            if key.A in self.keys and key.S in self.keys: 
+                self.car.position = [self.car.position[0] - 1, self.car.position[1] - 1, self.car.position[2]]
+            if key.D in self.keys and key.S in self.keys: 
+                self.car.position = [self.car.position[0] + 1, self.car.position[1] - 1, self.car.position[2]]
+
             if key.A in self.keys:
                 self.car.position = [self.car.position[0] - 1, self.car.position[1], self.car.position[2]]
                 self.car.rotation = 270
