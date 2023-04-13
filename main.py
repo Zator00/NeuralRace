@@ -15,7 +15,10 @@ class main(pyglet.window.Window):
         self.alive = 1
         
         car_image = pyglet.image.load('car.png')
-        self.car = pyglet.sprite.Sprite(car_image, x=400, y=100)
+        car_image.anchor_x = car_image.width // 2
+        car_image.anchor_y = car_image.height // 2
+        car_imageX, car_imageY = width/2, height/2
+        self.car = pyglet.sprite.Sprite(car_image, x=car_imageX, y=car_imageY)
         self.car.scale = 3
 
     def on_draw(self):
@@ -51,12 +54,16 @@ class main(pyglet.window.Window):
                 self.car.position = [self.car.position[0] - 1, self.car.position[1] + 1, self.car.position[2]]
             if key.A in self.keys:
                 self.car.position = [self.car.position[0] - 1, self.car.position[1], self.car.position[2]]
+                self.car.rotation = 270
             elif key.W in self.keys:
                 self.car.position = [self.car.position[0], self.car.position[1] + 1, self.car.position[2]]
+                self.car.rotation = 0
             elif key.S in self.keys:
                 self.car.position = [self.car.position[0], self.car.position[1] - 1, self.car.position[2]]
+                self.car.rotation = 180
             elif key.D in self.keys:
                 self.car.position = [self.car.position[0] + 1, self.car.position[1], self.car.position[2]]
+                self.car.rotation = 90
             elif mouse.LEFT in self.keys:
                 print('COORDINATES: x=')
 
