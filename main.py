@@ -4,11 +4,12 @@ from pyglet.window import key
 from pyglet.window import mouse
 from pyglet import *
 from pyglet.gl import *
+import pygame
 
 key = pyglet.window.key
 
 class main(pyglet.window.Window):
-    def __init__ (self, width=800, height=600, fps=False, *args, **kwargs):
+    def __init__ (self, width=900, height=900, fps=False, *args, **kwargs):
         super(main, self).__init__(width, height, *args, **kwargs)
 
         self.mouse = [0,0]
@@ -21,6 +22,9 @@ class main(pyglet.window.Window):
         car_imageX, car_imageY = width/2, height/2
         self.car = pyglet.sprite.Sprite(car_image, x=car_imageX, y=car_imageY)
         self.car.scale = 3
+        
+        self.background = pyglet.graphics.Batch()
+        self.fancy_background = pyglet.sprite.Sprite(pyglet.image.load('race_track.png'), batch=self.background)
 
     def on_draw(self):
         self.render()
@@ -44,8 +48,10 @@ class main(pyglet.window.Window):
 
     def render(self):
         self.clear()
+        self.background.draw()
         self.car.draw()
         self.flip()
+        
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse[0] += dx
@@ -56,7 +62,7 @@ class main(pyglet.window.Window):
     def run(self):
         while self.alive == 1:
             event = self.dispatch_events()
-
+            
             if key.A in self.keys and key.W in self.keys: #todo change from if to smth else to make controls work properly
                 self.car.position = [self.car.position[0] - 1, self.car.position[1] + 1, self.car.position[2]]
             if key.D in self.keys and key.W in self.keys: 
