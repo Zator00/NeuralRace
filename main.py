@@ -4,7 +4,7 @@ from pyglet.window import key
 from pyglet.window import mouse
 from pyglet import *
 from pyglet.gl import *
-import pygame
+import math
 
 key = pyglet.window.key
 
@@ -15,6 +15,10 @@ class main(pyglet.window.Window):
         self.mouse = [0,0]
         self.keys = {}
         self.alive = 1
+        
+        self.max_speed = 1
+        self.carSpeedX = 0
+        self.carSpeedY = 0
         
         car_image = pyglet.image.load('car.png')
         car_image.anchor_x = car_image.width // 2
@@ -51,7 +55,6 @@ class main(pyglet.window.Window):
         self.background.draw()
         self.car.draw()
         self.flip()
-        
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse[0] += dx
@@ -62,30 +65,27 @@ class main(pyglet.window.Window):
     def run(self):
         while self.alive == 1:
             event = self.dispatch_events()
-            
-            if key.A in self.keys and key.W in self.keys: #todo change from if to smth else to make controls work properly
-                self.car.position = [self.car.position[0] - 1, self.car.position[1] + 1, self.car.position[2]]
-            if key.D in self.keys and key.W in self.keys: 
-                self.car.position = [self.car.position[0] + 1, self.car.position[1] + 1, self.car.position[2]]
-            if key.A in self.keys and key.S in self.keys: 
-                self.car.position = [self.car.position[0] - 1, self.car.position[1] - 1, self.car.position[2]]
-            if key.D in self.keys and key.S in self.keys: 
-                self.car.position = [self.car.position[0] + 1, self.car.position[1] - 1, self.car.position[2]]
 
-            if key.A in self.keys:
-                self.car.position = [self.car.position[0] - 1, self.car.position[1], self.car.position[2]]
-                self.car.rotation = 270
-            elif key.W in self.keys:
-                self.car.position = [self.car.position[0], self.car.position[1] + 1, self.car.position[2]]
-                self.car.rotation = 0
-            elif key.S in self.keys:
-                self.car.position = [self.car.position[0], self.car.position[1] - 1, self.car.position[2]]
-                self.car.rotation = 180
-            elif key.D in self.keys:
-                self.car.position = [self.car.position[0] + 1, self.car.position[1], self.car.position[2]]
-                self.car.rotation = 90
+            if key.LEFT in self.keys:
+                self.car.rotation -= 1
+                
+            elif key.RIGHT in self.keys:
+                self.car.rotation += 1
+                
+            if key.UP in self.keys:
+                self.carSpeedX = self.max_speed * math.sin(math.radians(self.car.rotation))
+                self.carSpeedY = self.max_speed * math.cos(math.radians(self.car.rotation))
+                print(self.car.rotation)
+            elif key.DOWN in self.keys:
+                self.carSpeedX = -self.max_speed * math.sin(math.radians(self.car.rotation))
+                self.carSpeedY = -self.max_speed * math.cos(math.radians(self.car.rotation))
             elif mouse.LEFT in self.keys:
                 print('COORDINATES: x=')
+            
+            self.car.x += self.carSpeedX
+            self.car.y += self.carSpeedY
+            self.carSpeedX *= 0.97
+            self.carSpeedY *= 0.97
 
             self.render()
 
