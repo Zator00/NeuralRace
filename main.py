@@ -1,4 +1,3 @@
-
 import pyglet
 from pyglet.window import key
 from pyglet.window import mouse
@@ -15,20 +14,20 @@ class main(pyglet.window.Window):
         self.mouse = [0,0]
         self.keys = {}
         self.alive = 1
-        
+
         self.max_speed = 1
         self.carSpeedX = 0
         self.carSpeedY = 0
-        
+
         car_image = pyglet.image.load('car.png')
         car_image.anchor_x = car_image.width // 2
         car_image.anchor_y = car_image.height // 2
-        car_imageX, car_imageY = width/2, height/2
+        car_imageX, car_imageY = width/2 - 40, height/2 + 70
         self.car = pyglet.sprite.Sprite(car_image, x=car_imageX, y=car_imageY)
         self.car.scale = 3
-        
-        self.background = pyglet.graphics.Batch()
-        self.fancy_background = pyglet.sprite.Sprite(pyglet.image.load('race_track.png'), batch=self.background)
+
+        self.track_texture = pyglet.image.load('race_track.png')
+        self.background = pyglet.sprite.Sprite(self.track_texture)
 
     def on_draw(self):
         self.render()
@@ -63,6 +62,8 @@ class main(pyglet.window.Window):
         pass
 
     def run(self):
+        
+        
         while self.alive == 1:
             event = self.dispatch_events()
 
@@ -84,9 +85,17 @@ class main(pyglet.window.Window):
             
             self.car.x += self.carSpeedX
             self.car.y += self.carSpeedY
+            
+            region = self.track_texture.get_region(int(self.car.x), int(self.car.y), 1, 1)
+            image_data = region.get_image_data()
+            pixel_data = image_data.get_data('RGBA', image_data.width * 4)
+            if pixel_data == b'\x00\xff\x00\xff':
+                self.car.x, self.car.y = self.width/2 - 40, self.height/2 + 70
+                self.carSpeedX, self.carSpeedY = 0, 0
+            
             self.carSpeedX *= 0.97
             self.carSpeedY *= 0.97
-
+            
             self.render()
 
 if __name__ == '__main__':
