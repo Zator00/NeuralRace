@@ -19,15 +19,18 @@ class main(pyglet.window.Window):
         self.carSpeedX = 0
         self.carSpeedY = 0
 
+        car_init()
+
+        self.track_texture = pyglet.image.load('race_track.png')
+        self.background = pyglet.sprite.Sprite(self.track_texture)
+    
+    def car_init(self):
         car_image = pyglet.image.load('car.png')
         car_image.anchor_x = car_image.width // 2
         car_image.anchor_y = car_image.height // 2
         car_imageX, car_imageY = width/2 - 40, height/2 + 70
         self.car = pyglet.sprite.Sprite(car_image, x=car_imageX, y=car_imageY)
         self.car.scale = 2
-
-        self.track_texture = pyglet.image.load('race_track.png')
-        self.background = pyglet.sprite.Sprite(self.track_texture)
 
     def on_draw(self):
         self.render()
