@@ -19,7 +19,7 @@ class Car(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(400,400))
         self.angle = 0
         self.driving_status = False
-        self.speed_vector = pygame.math.Vector2(0.1,0)
+        self.speed_vector = pygame.math.Vector2(0.5,0)
         self.rotation_speed = 0.01
         self.direction = 0
         self.alive = True
