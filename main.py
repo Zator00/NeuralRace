@@ -1,5 +1,5 @@
 from typing import Any
-import pygame
+import pygame as pg
 import math
 import os
 import sys
@@ -7,103 +7,125 @@ import sys
 width = 900
 height = 900
 
-screen = pygame.display.set_mode((width, height))
-track_texture = pygame.image.load("race_track.png")
+screen = pg.display.set_mode((width, height))
+track_texture = pg.image.load("race_track_v2.png")
 
-class Car(pygame.sprite.Sprite):
+class Car(pg.sprite.Sprite):
     
-    def __init__(self):
+    def __init__(self, maxVel, rotationVel):
         super().__init__()
-        self.original_car = pygame.image.load("car.png")
-        self.image = self.original_car
-        self.rect = self.image.get_rect(center=(400,400))
+        self.START_POS = (400,400)
+        
+        #Car init values
+        self.maxVel = maxVel
+        self.vel = 0
+        self.rotationVel = rotationVel
         self.angle = 0
-        self.driving_status = False
-        self.speed_vector = pygame.math.Vector2(0.5,0)
-        self.rotation_speed = 0.01
-        self.direction = 0
-        self.alive = True
-
+        self.acceleration = 0.1
+        self.x, self.y = self.START_POS
+        
+        self.originalImage = pg.image.load('car.png')
+        self.image = self.originalImage
+        self.size = self.image.get_size()
+        self.rect = self.image.get_rect(center=self.START_POS)
+        self.angle = 0
+        
+    def rotate(self, left=False, right=False):
+        if left:
+            self.angle += self.rotationVel
+        elif right:
+            self.angle -= self.rotationVel
+            
+    def moveForward(self):
+        self.vel = min(self.vel + self.acceleration, self.maxVel)
+        self.move()
+        
+    def moveBack(self):
+        self.vel = max(self.vel - self.acceleration, -self.maxVel)
+        self.move()
+        
+    def move(self):
+        radians = math.radians(self.angle)
+        vertical = math.cos(radians) * self.vel
+        horizontal = math.sin(radians) * self.vel
+        
+        self.y -= vertical
+        self.x -= horizontal
+        
+    def reduceSpeed(self):
+        self.vel = max(self.vel - self.acceleration/2,0)
+        self.move()
         
     def update(self):
-        self.drive()
-        self.rotation()
-        for sensor_placment in (-60, -30, 0, 30, 60):
-            self.sensors(sensor_placment)
+        self.image = pg.transform.rotate(self.originalImage, self.angle)
+        self.rect = self.image.get_rect(center=(self.x,self.y))
+        for sensor_placement in (130, 150, 180, -150, -130):
+            self.sensors(sensor_placement)
         self.collision()
-
-    def drive(self):
-        if self.driving_status:
-            self.rect.center += self.speed_vector * 2
             
-    def rotation(self):
-        if self.direction == 1:
-            self.angle -= self.rotation_speed
-            self.speed_vector.rotate_ip(self.rotation_speed)
-        if self.direction == -1:
-            self.angle += self.rotation_speed
-            self.speed_vector.rotate_ip(-self.rotation_speed)
-            
-        self.image = pygame.transform.rotozoom(self.original_car, self.angle, 1.6)
-        self.rect = self.image.get_rect(center=self.rect.center)
-
     def collision(self):
-        length = 12
-        collision_point_right = [int(self.rect.center[0] + math.cos(math.radians(self.angle)) * length),
-                                 int(self.rect.center[1] - math.sin(math.radians(self.angle)) * length)]
-        collision_point_left = [int(self.rect.center[0] + math.cos(math.radians(self.angle)) * length),
-                                int(self.rect.center[1] - math.sin(math.radians(self.angle)) * length)]
+        pass
         
-        if screen.get_at(collision_point_right) == pygame.Color(0, 255, 0, 255) \
-                or screen.get_at(collision_point_left) == pygame.Color(0, 255, 0, 255):
-            self.alive = False
-
-        pygame.draw.circle(screen, (0, 255, 255, 0), collision_point_right, 4)
-        pygame.draw.circle(screen, (0, 255, 255, 0), collision_point_left, 4) 
-        
-    def sensors(self, sensor_placment):
+    def sensors(self, sensorPlacement):
         length = 0
-        x = int(self.rect.center[0])
         y = int(self.rect.center[1])
+        x = int(self.rect.center[0])
         
-        while not screen.get_at((x,y)) == pygame.Color(0,255,0,255) and length < 170:
+        while not screen.get_at((x,y)) == pg.Color(0,0,0) and length < 200:
             length += 1
-            x = int(self.rect.center[0] + math.cos(math.radians(self.angle + sensor_placment)) * length)
-            y = int(self.rect.center[1] + math.sin(math.radians(self.angle + sensor_placment)) * length)
+            x = int(self.rect.center[0] + math.sin(math.radians(self.angle + sensorPlacement)) * length)
+            y = int(self.rect.center[1] + math.cos(math.radians(self.angle + sensorPlacement)) * length)
+            #print(sensorPlacement," ",length)
+            if screen.get_at((x,y)) == pg.Color(0,255,0):
+                self.moveToStart()
+            if x >= screen.get_width() - 1 or x <= 1 or y <= 1  or y >= screen.get_height() - 1:
+                x = x - 1
+                y = y - 1
+                break
             
-        pygame.draw.line(screen, (255,255,255,255), self.rect.center, (x,y), 1)
-        pygame.draw.circle(screen, (255,0,255,0), (x,y),3)
-
-car = pygame.sprite.GroupSingle(Car())
+        pg.draw.line(screen, (255,255,255,255), self.rect.center, (x,y), 1)
+        pg.draw.circle(screen, (255,0,255,0), (x,y),3)
+        
+    def moveToStart(self):
+        self.x, self.y = self.START_POS
+        self.move()
 
 def game():
-    racemode = True
-    while racemode:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+    run = True
+    car = pg.sprite.GroupSingle(Car(2,2))
+    FPS = 60
+    clock = pg.time.Clock()
+    while run:
+        clock.tick(FPS)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                run = False
                     
         screen.blit(track_texture, (0,0))
 
-        keys = pygame.key.get_pressed()
+        keys = pg.key.get_pressed()
+        moved = False
 
-        if pygame.key.get_pressed() == False:
-            car.sprite.driving_status = False
-            car.sprite.direction = 0
-        
-        if keys[pygame.K_UP]:
-            car.sprite.driving_status = True
-        
-        if keys[pygame.K_LEFT]:
-            car.sprite.direction = -1
-        
-        if keys[pygame.K_RIGHT]:
-            car.sprite.direction = 1
+        if keys[pg.K_LEFT]:
+            car.sprite.rotate(left=True)
+                
+        elif keys[pg.K_RIGHT]:
+            car.sprite.rotate(right=True)
             
+        if keys[pg.K_UP]:
+            moved = True
+            car.sprite.moveForward()
+            
+        elif keys[pg.K_DOWN]:
+            moved = True
+            car.sprite.moveBack()
+            
+        if not moved:
+            car.sprite.reduceSpeed()
+        
         car.draw(screen)
         car.update()
-        pygame.display.update()
-            
+        pg.display.update()
+    pg.quit()
 
 game()
