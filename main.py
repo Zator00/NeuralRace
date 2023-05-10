@@ -1,8 +1,5 @@
-from typing import Any
 import pygame as pg
 import math
-import os
-import sys
 
 width = 900
 height = 900
