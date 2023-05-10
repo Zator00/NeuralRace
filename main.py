@@ -88,7 +88,7 @@ class Car(pg.sprite.Sprite):
         
     def moveToStart(self):
         self.x, self.y = self.START_POS
-        self.move()
+        self.vel = 0
 
 def game():
     run = True
