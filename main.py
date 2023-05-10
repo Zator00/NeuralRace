@@ -1,103 +1,131 @@
-import pyglet
-from pyglet.window import key
-from pyglet.window import mouse
-from pyglet import *
-from pyglet.gl import *
+from typing import Any
+import pygame as pg
 import math
+import os
+import sys
 
-key = pyglet.window.key
+width = 900
+height = 900
 
-class main(pyglet.window.Window):
-    def __init__ (self, width=900, height=900, fps=False, *args, **kwargs):
-        super(main, self).__init__(width, height, *args, **kwargs)
+screen = pg.display.set_mode((width, height))
+track_texture = pg.image.load("race_track_v2.png")
 
-        self.mouse = [0,0]
-        self.keys = {}
-        self.alive = 1
-
-        self.max_speed = 2
-        self.carSpeedX = 0
-        self.carSpeedY = 0
-
-        car_image = pyglet.image.load('car.png')
-        car_image.anchor_x = car_image.width // 2
-        car_image.anchor_y = car_image.height // 2
-        car_imageX, car_imageY = width/2 - 40, height/2 + 70
-        self.car = pyglet.sprite.Sprite(car_image, x=car_imageX, y=car_imageY)
-        self.car.scale = 2
-
-        self.track_texture = pyglet.image.load('race_track.png')
-        self.background = pyglet.sprite.Sprite(self.track_texture)
-
-    def on_draw(self):
-        self.render()
-
-    def on_close(self):
-        self.alive = 0
-
-    def on_key_release(self, symbol, modifiers):
-        try:
-            del self.keys[symbol]
-        except:
-            pass
-
-    def on_key_press(self, symbol, modifiers):
-        if symbol == key.ESCAPE: # [ESC]
-            self.alive = 0
-        if symbol == key.O:
-            for i in self.keys:
-                print(i)
-        self.keys[symbol] = True
-
-    def render(self):
-        self.clear()
-        self.background.draw()
-        self.car.draw()
-        self.flip()
-
-    def on_mouse_motion(self, x, y, dx, dy):
-        self.mouse[0] += dx
-        self.mouse[1] += dy
-        print(x," ",y)
+class Car(pg.sprite.Sprite):
+    
+    def __init__(self, maxVel, rotationVel):
+        super().__init__()
+        self.START_POS = (400,400)
+        
+        #Car init values
+        self.maxVel = maxVel
+        self.vel = 0
+        self.rotationVel = rotationVel
+        self.angle = 0
+        self.acceleration = 0.1
+        self.x, self.y = self.START_POS
+        
+        self.originalImage = pg.image.load('car.png')
+        self.image = self.originalImage
+        self.size = self.image.get_size()
+        self.rect = self.image.get_rect(center=self.START_POS)
+        self.angle = 0
+        
+    def rotate(self, left=False, right=False):
+        if left:
+            self.angle += self.rotationVel
+        elif right:
+            self.angle -= self.rotationVel
+            
+    def moveForward(self):
+        self.vel = min(self.vel + self.acceleration, self.maxVel)
+        self.move()
+        
+    def moveBack(self):
+        self.vel = max(self.vel - self.acceleration, -self.maxVel)
+        self.move()
+        
+    def move(self):
+        radians = math.radians(self.angle)
+        vertical = math.cos(radians) * self.vel
+        horizontal = math.sin(radians) * self.vel
+        
+        self.y -= vertical
+        self.x -= horizontal
+        
+    def reduceSpeed(self):
+        self.vel = max(self.vel - self.acceleration/2,0)
+        self.move()
+        
+    def update(self):
+        self.image = pg.transform.rotate(self.originalImage, self.angle)
+        self.rect = self.image.get_rect(center=(self.x,self.y))
+        for sensor_placement in (130, 150, 180, -150, -130):
+            self.sensors(sensor_placement)
+        self.collision()
+            
+    def collision(self):
         pass
-
-    def run(self):
         
+    def sensors(self, sensorPlacement):
+        length = 0
+        y = int(self.rect.center[1])
+        x = int(self.rect.center[0])
         
-        while self.alive == 1:
-            event = self.dispatch_events()
+        while not screen.get_at((x,y)) == pg.Color(0,0,0) and length < 200:
+            length += 1
+            x = int(self.rect.center[0] + math.sin(math.radians(self.angle + sensorPlacement)) * length)
+            y = int(self.rect.center[1] + math.cos(math.radians(self.angle + sensorPlacement)) * length)
+            #print(sensorPlacement," ",length)
+            if screen.get_at((x,y)) == pg.Color(0,255,0):
+                self.moveToStart()
+            if x >= screen.get_width() - 1 or x <= 1 or y <= 1  or y >= screen.get_height() - 1:
+                x = x - 1
+                y = y - 1
+                break
+            
+        pg.draw.line(screen, (255,255,255,255), self.rect.center, (x,y), 1)
+        pg.draw.circle(screen, (255,0,255,0), (x,y),3)
+        
+    def moveToStart(self):
+        self.x, self.y = self.START_POS
+        self.move()
 
-            if key.LEFT in self.keys:
-                self.car.rotation -= 1
-                
-            elif key.RIGHT in self.keys:
-                self.car.rotation += 1
-                
-            if key.UP in self.keys:
-                self.carSpeedX = self.max_speed * math.sin(math.radians(self.car.rotation))
-                self.carSpeedY = self.max_speed * math.cos(math.radians(self.car.rotation))
-                print(self.car.rotation)
-            elif key.DOWN in self.keys:
-                self.carSpeedX = -self.max_speed * math.sin(math.radians(self.car.rotation))
-                self.carSpeedY = -self.max_speed * math.cos(math.radians(self.car.rotation))
-            elif mouse.LEFT in self.keys:
-                print('COORDINATES: x=')
-            
-            self.car.x += self.carSpeedX
-            self.car.y += self.carSpeedY
-            
-            region = self.track_texture.get_region(int(self.car.x), int(self.car.y), 1, 1)
-            image_data = region.get_image_data()
-            pixel_data = image_data.get_data('RGBA', image_data.width * 4)
-            if pixel_data == b'\x00\xff\x00\xff':
-                self.car.x, self.car.y = self.width/2 - 40, self.height/2 + 70
-                self.carSpeedX, self.carSpeedY = 0, 0
-            
-            self.carSpeedX *= 0.97
-            self.carSpeedY *= 0.97
-            
-            self.render()
+def game():
+    run = True
+    car = pg.sprite.GroupSingle(Car(2,2))
+    FPS = 60
+    clock = pg.time.Clock()
+    while run:
+        clock.tick(FPS)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                run = False
+                    
+        screen.blit(track_texture, (0,0))
 
-if __name__ == '__main__':
-    x = main()
-    x.run()
+        keys = pg.key.get_pressed()
+        moved = False
+
+        if keys[pg.K_LEFT]:
+            car.sprite.rotate(left=True)
+                
+        elif keys[pg.K_RIGHT]:
+            car.sprite.rotate(right=True)
+            
+        if keys[pg.K_UP]:
+            moved = True
+            car.sprite.moveForward()
+            
+        elif keys[pg.K_DOWN]:
+            moved = True
+            car.sprite.moveBack()
+            
+        if not moved:
+            car.sprite.reduceSpeed()
+        
+        car.draw(screen)
+        car.update()
+        pg.display.update()
+    pg.quit()
+
+game()
