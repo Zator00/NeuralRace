@@ -1,103 +1,109 @@
-import pyglet
-from pyglet.window import key
-from pyglet.window import mouse
-from pyglet import *
-from pyglet.gl import *
+from typing import Any
+import pygame
 import math
+import os
+import sys
 
-key = pyglet.window.key
+width = 900
+height = 900
 
-class main(pyglet.window.Window):
-    def __init__ (self, width=900, height=900, fps=False, *args, **kwargs):
-        super(main, self).__init__(width, height, *args, **kwargs)
+screen = pygame.display.set_mode((width, height))
+track_texture = pygame.image.load("race_track.png")
 
-        self.mouse = [0,0]
-        self.keys = {}
-        self.alive = 1
+class Car(pygame.sprite.Sprite):
+    
+    def __init__(self):
+        super().__init__()
+        self.original_car = pygame.image.load("car.png")
+        self.image = self.original_car
+        self.rect = self.image.get_rect(center=(400,400))
+        self.angle = 0
+        self.driving_status = False
+        self.speed_vector = pygame.math.Vector2(0.1,0)
+        self.rotation_speed = 0.01
+        self.direction = 0
+        self.alive = True
 
-        self.max_speed = 1
-        self.carSpeedX = 0
-        self.carSpeedY = 0
-
-        car_image = pyglet.image.load('car.png')
-        car_image.anchor_x = car_image.width // 2
-        car_image.anchor_y = car_image.height // 2
-        car_imageX, car_imageY = width/2 - 40, height/2 + 70
-        self.car = pyglet.sprite.Sprite(car_image, x=car_imageX, y=car_imageY)
-        self.car.scale = 3
-
-        self.track_texture = pyglet.image.load('race_track.png')
-        self.background = pyglet.sprite.Sprite(self.track_texture)
-
-    def on_draw(self):
-        self.render()
-
-    def on_close(self):
-        self.alive = 0
-
-    def on_key_release(self, symbol, modifiers):
-        try:
-            del self.keys[symbol]
-        except:
-            pass
-
-    def on_key_press(self, symbol, modifiers):
-        if symbol == key.ESCAPE: # [ESC]
-            self.alive = 0
-        if symbol == key.O:
-            for i in self.keys:
-                print(i)
-        self.keys[symbol] = True
-
-    def render(self):
-        self.clear()
-        self.background.draw()
-        self.car.draw()
-        self.flip()
-
-    def on_mouse_motion(self, x, y, dx, dy):
-        self.mouse[0] += dx
-        self.mouse[1] += dy
-        print(x," ",y)
-        pass
-
-    def run(self):
         
+    def update(self):
+        self.drive()
+        self.rotation()
+        for sensor_placment in (-60, -30, 0, 30, 60):
+            self.sensors(sensor_placment)
+        self.collision()
+
+    def drive(self):
+        if self.driving_status:
+            self.rect.center += self.speed_vector * 2
+            
+    def rotation(self):
+        if self.direction == 1:
+            self.angle -= self.rotation_speed
+            self.speed_vector.rotate_ip(self.rotation_speed)
+        if self.direction == -1:
+            self.angle += self.rotation_speed
+            self.speed_vector.rotate_ip(-self.rotation_speed)
+            
+        self.image = pygame.transform.rotozoom(self.original_car, self.angle, 1.6)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def collision(self):
+        length = 12
+        collision_point_right = [int(self.rect.center[0] + math.cos(math.radians(self.angle)) * length),
+                                 int(self.rect.center[1] - math.sin(math.radians(self.angle)) * length)]
+        collision_point_left = [int(self.rect.center[0] + math.cos(math.radians(self.angle)) * length),
+                                int(self.rect.center[1] - math.sin(math.radians(self.angle)) * length)]
         
-        while self.alive == 1:
-            event = self.dispatch_events()
+        if screen.get_at(collision_point_right) == pygame.Color(0, 255, 0, 255) \
+                or screen.get_at(collision_point_left) == pygame.Color(0, 255, 0, 255):
+            self.alive = False
 
-            if key.LEFT in self.keys:
-                self.car.rotation -= 1
-                
-            elif key.RIGHT in self.keys:
-                self.car.rotation += 1
-                
-            if key.UP in self.keys:
-                self.carSpeedX = self.max_speed * math.sin(math.radians(self.car.rotation))
-                self.carSpeedY = self.max_speed * math.cos(math.radians(self.car.rotation))
-                print(self.car.rotation)
-            elif key.DOWN in self.keys:
-                self.carSpeedX = -self.max_speed * math.sin(math.radians(self.car.rotation))
-                self.carSpeedY = -self.max_speed * math.cos(math.radians(self.car.rotation))
-            elif mouse.LEFT in self.keys:
-                print('COORDINATES: x=')
+        pygame.draw.circle(screen, (0, 255, 255, 0), collision_point_right, 4)
+        pygame.draw.circle(screen, (0, 255, 255, 0), collision_point_left, 4) 
+        
+    def sensors(self, sensor_placment):
+        length = 0
+        x = int(self.rect.center[0])
+        y = int(self.rect.center[1])
+        
+        while not screen.get_at((x,y)) == pygame.Color(0,255,0,255) and length < 170:
+            length += 1
+            x = int(self.rect.center[0] + math.cos(math.radians(self.angle + sensor_placment)) * length)
+            y = int(self.rect.center[1] + math.sin(math.radians(self.angle + sensor_placment)) * length)
             
-            self.car.x += self.carSpeedX
-            self.car.y += self.carSpeedY
-            
-            region = self.track_texture.get_region(int(self.car.x), int(self.car.y), 1, 1)
-            image_data = region.get_image_data()
-            pixel_data = image_data.get_data('RGBA', image_data.width * 4)
-            if pixel_data == b'\x00\xff\x00\xff':
-                self.car.x, self.car.y = self.width/2 - 40, self.height/2 + 70
-                self.carSpeedX, self.carSpeedY = 0, 0
-            
-            self.carSpeedX *= 0.97
-            self.carSpeedY *= 0.97
-            
-            self.render()
+        pygame.draw.line(screen, (255,255,255,255), self.rect.center, (x,y), 1)
+        pygame.draw.circle(screen, (255,0,255,0), (x,y),3)
 
-if __name__ == '__main__':
-    x = main()
-    x.run()
+car = pygame.sprite.GroupSingle(Car())
+
+def game():
+    racemode = True
+    while racemode:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+                    
+        screen.blit(track_texture, (0,0))
+
+        keys = pygame.key.get_pressed()
+
+        if pygame.key.get_pressed() == False:
+            car.sprite.driving_status = False
+            car.sprite.direction = 0
+        
+        if keys[pygame.K_UP]:
+            car.sprite.driving_status = True
+        
+        if keys[pygame.K_LEFT]:
+            car.sprite.direction = -1
+        
+        if keys[pygame.K_RIGHT]:
+            car.sprite.direction = 1
+            
+        car.draw(screen)
+        car.update()
+        pygame.display.update()
+            
+
+game()
