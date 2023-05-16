@@ -22,6 +22,7 @@ class Car(pg.sprite.Sprite):
         self.rotationVel = rotationVel
         self.acceleration = 0.1
         self.x, self.y = self.START_POS
+        self.moved = False
         
         self.originalImage = pg.image.load('car.png')
         self.rect = self.originalImage.get_rect()
@@ -39,11 +40,17 @@ class Car(pg.sprite.Sprite):
             self.angle -= self.rotationVel
             
     def moveForward(self):
-        self.vel = min(self.vel + self.acceleration, self.maxVel)
-        self.move()
+        self.moved = True
+        if screen.get_at((int(self.x), int(self.y))) != pg.Color(230,215,150):
+            self.vel = min(self.vel + self.acceleration, self.maxVel)
+            self.move()
+        else:
+            self.vel = 0
         
     def moveBack(self):
-        self.vel = max(self.vel - self.acceleration, -self.maxVel)
+        self.moved = True
+        self.vel = min(self.vel - self.acceleration, -self.maxVel)
+        print(self.maxVel)
         self.move()
         
     def move(self):
@@ -59,14 +66,16 @@ class Car(pg.sprite.Sprite):
         self.move()
         
     def update(self):
+        self.moved = False
+        self.checkIfCarIsMoving()
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
         for i, sensor_placement in enumerate([130, 150, 180, -150, -130]):
             self.sensorsLengths[i] = self.sensors(sensor_placement)
-        self.collision()
             
-    def collision(self):
-        pass
+    def checkIfCarIsMoving(self):
+        if not self.moved:
+            self.reduceSpeed()
         
     def sensors(self, sensorPlacement):
         length = 0
@@ -110,7 +119,6 @@ def game():
         screen.blit(track_texture, (0,0))
 
         keys = pg.key.get_pressed()
-        moved = False
 
         if keys[pg.K_LEFT]:
             car.sprite.rotate(left=True)
@@ -118,21 +126,11 @@ def game():
         elif keys[pg.K_RIGHT]:
             car.sprite.rotate(right=True)
             
-        if keys[pg.K_UP]:    
-            moved = True       
-            if screen.get_at((int(car.sprite.x), int(car.sprite.y))) != pg.Color(230,215,150):
-               car.sprite.moveForward()
-            else:
-               car.sprite.vel = 0
+        if keys[pg.K_UP]:        
+            car.sprite.moveForward()
 
-            
         elif keys[pg.K_DOWN]:
-            moved = True
             car.sprite.moveBack()
-
-            
-        if not moved:
-            car.sprite.reduceSpeed()
             
         #print(car.sprite.getSensorsLength())
         
