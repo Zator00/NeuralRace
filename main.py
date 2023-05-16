@@ -4,8 +4,11 @@ import math
 width = 900
 height = 900
 
+pygame_icon = pg.image.load('logo.png')
+pg.display.set_icon(pygame_icon)
+
 screen = pg.display.set_mode((width, height))
-track_texture = pg.image.load("race_track_v2.png")
+track_texture = pg.image.load("race_track_v3.png")
 
 class Car(pg.sprite.Sprite):
     
@@ -22,6 +25,7 @@ class Car(pg.sprite.Sprite):
         self.x, self.y = self.START_POS
         
         self.originalImage = pg.image.load('car.png')
+        self.rect = self.originalImage.get_rect()
         self.image = self.originalImage
         self.size = self.image.get_size()
         self.rect = self.image.get_rect(center=self.START_POS)
@@ -73,12 +77,11 @@ class Car(pg.sprite.Sprite):
             x = int(self.rect.center[0] + math.sin(math.radians(self.angle + sensorPlacement)) * length)
             y = int(self.rect.center[1] + math.cos(math.radians(self.angle + sensorPlacement)) * length)
             #print(sensorPlacement," ",length)
-            if screen.get_at((x,y)) == pg.Color(0,255,0):
-                self.moveToStart()
             if x >= screen.get_width() - 1 or x <= 1 or y <= 1  or y >= screen.get_height() - 1:
                 x = x - 1
                 y = y - 1
                 break
+
             
         pg.draw.line(screen, (255,255,255,255), self.rect.center, (x,y), 1)
         pg.draw.circle(screen, (255,0,255,0), (x,y),3)
@@ -86,6 +89,8 @@ class Car(pg.sprite.Sprite):
     def moveToStart(self):
         self.x, self.y = self.START_POS
         self.vel = 0
+    
+
 
 def game():
     run = True
@@ -109,13 +114,18 @@ def game():
         elif keys[pg.K_RIGHT]:
             car.sprite.rotate(right=True)
             
-        if keys[pg.K_UP]:
-            moved = True
-            car.sprite.moveForward()
+        if keys[pg.K_UP]:    
+            moved = True       
+            if screen.get_at((int(car.sprite.x), int(car.sprite.y))) != pg.Color(230,215,150):
+               car.sprite.moveForward()
+            else:
+               car.sprite.vel = 0
+
             
         elif keys[pg.K_DOWN]:
             moved = True
             car.sprite.moveBack()
+
             
         if not moved:
             car.sprite.reduceSpeed()
