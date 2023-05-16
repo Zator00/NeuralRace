@@ -20,7 +20,6 @@ class Car(pg.sprite.Sprite):
         self.maxVel = maxVel
         self.vel = 0
         self.rotationVel = rotationVel
-        self.angle = 0
         self.acceleration = 0.1
         self.x, self.y = self.START_POS
         
@@ -29,7 +28,7 @@ class Car(pg.sprite.Sprite):
         self.image = self.originalImage
         self.size = self.image.get_size()
         self.rect = self.image.get_rect(center=self.START_POS)
-        self.angle = 0
+        self.angle = -75
         
     def rotate(self, left=False, right=False):
         if left:
