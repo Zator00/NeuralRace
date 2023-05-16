@@ -30,6 +30,8 @@ class Car(pg.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.START_POS)
         self.angle = -75
         
+        self.sensorsLengths = [0, 0, 0, 0, 0]
+        
     def rotate(self, left=False, right=False):
         if left:
             self.angle += self.rotationVel
@@ -59,8 +61,8 @@ class Car(pg.sprite.Sprite):
     def update(self):
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
-        for sensor_placement in (130, 150, 180, -150, -130):
-            self.sensors(sensor_placement)
+        for i, sensor_placement in enumerate([130, 150, 180, -150, -130]):
+            self.sensorsLengths[i] = self.sensors(sensor_placement)
         self.collision()
             
     def collision(self):
@@ -81,13 +83,16 @@ class Car(pg.sprite.Sprite):
                 y = y - 1
                 break
 
-            
         pg.draw.line(screen, (255,255,255,255), self.rect.center, (x,y), 1)
         pg.draw.circle(screen, (255,0,255,0), (x,y),3)
+        return length
         
     def moveToStart(self):
         self.x, self.y = self.START_POS
         self.vel = 0
+    
+    def getSensorsLength(self):
+        return self.sensorsLengths
     
 
 
@@ -128,6 +133,8 @@ def game():
             
         if not moved:
             car.sprite.reduceSpeed()
+            
+        #print(car.sprite.getSensorsLength())
         
         car.draw(screen)
         car.update()
