@@ -10,6 +10,21 @@ pg.display.set_icon(pygame_icon)
 screen = pg.display.set_mode((width, height))
 track_texture = pg.image.load("race_track_v3.png")
 
+def load_line_positions(filename):
+    positions = []
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            # Rozdzielanie linii na poszczególne wartości
+            x1, y1, x2, y2 = map(int, line.strip().split(','))
+            positions.append((x1, y1, x2, y2))
+    return positions
+
+# Funkcja do rysowania linii na podstawie parametrów położenia
+def draw_lines(screen, lines, car):
+     for line in lines:
+        pg.draw.line(screen, (255, 0, 0), line.start, line.end, 2)
+
 class Car(pg.sprite.Sprite):
     
     def __init__(self, maxVel, rotationVel):
@@ -30,6 +45,7 @@ class Car(pg.sprite.Sprite):
         self.size = self.image.get_size()
         self.rect = self.image.get_rect(center=self.START_POS)
         self.angle = -75
+        self.score = 0
         
         self.sensorsLengths = [0, 0, 0, 0, 0]
         
@@ -65,13 +81,17 @@ class Car(pg.sprite.Sprite):
         self.vel = max(self.vel - self.acceleration/2,0)
         self.move()
         
-    def update(self):
+    def update(self, lines):
         self.moved = False
         self.checkIfCarIsMoving()
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
         for i, sensor_placement in enumerate([130, 150, 180, -150, -130]):
             self.sensorsLengths[i] = self.sensors(sensor_placement)
+        for line in lines:
+            if self.rect.colliderect(line.rect):
+                self.score += 1
+                print(self.rect.colliderect(line.rect))    
             
     def checkIfCarIsMoving(self):
         if not self.moved:
@@ -103,13 +123,24 @@ class Car(pg.sprite.Sprite):
     def getSensorsLength(self):
         return self.sensorsLengths
     
-
+class Line(pg.sprite.Sprite):
+    def __init__(self, start, end):
+        super().__init__()
+        self.start = start
+        self.end = end
+        self.rect = pg.Rect(start, (end[0] - start[0], end[1] - start[1]))
 
 def game():
     run = True
     car = pg.sprite.GroupSingle(Car(2,2))
     FPS = 60
     clock = pg.time.Clock()
+    line_positions = load_line_positions('lines.txt')
+    lines = pg.sprite.Group()
+    for pos in line_positions:
+        line = Line((pos[0], pos[1]), (pos[2], pos[3]))
+        lines.add(line)
+  
     while run:
         clock.tick(FPS)
         for event in pg.event.get():
@@ -117,6 +148,8 @@ def game():
                 run = False
                     
         screen.blit(track_texture, (0,0))
+        
+        draw_lines(screen, lines, car)
 
         keys = pg.key.get_pressed()
 
@@ -131,11 +164,12 @@ def game():
 
         elif keys[pg.K_DOWN]:
             car.sprite.moveBack()
-            
+
         #print(car.sprite.getSensorsLength())
         
         car.draw(screen)
-        car.update()
+        car.update(lines)
+        #print(car.sprite.score)
         pg.display.update()
     pg.quit()
 
