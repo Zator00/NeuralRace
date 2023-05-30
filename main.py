@@ -1,4 +1,5 @@
 import pygame as pg
+from pygame.math import Vector2
 import math
 
 width = 900
@@ -23,13 +24,13 @@ def load_line_positions(filename):
 # Funkcja do rysowania linii na podstawie parametrów położenia
 def draw_lines(screen, lines, car):
      for line in lines:
-        pg.draw.line(screen, (255, 0, 0), line.start, line.end, 2)
+        pg.draw.line(screen, (0,0,4), line.start, line.end, 2)
 
 class Car(pg.sprite.Sprite):
     
     def __init__(self, maxVel, rotationVel):
         super().__init__()
-        self.START_POS = (400,400)
+        self.START_POS = (350,630)
         
         #Car init values
         self.maxVel = maxVel
@@ -44,8 +45,9 @@ class Car(pg.sprite.Sprite):
         self.image = self.originalImage
         self.size = self.image.get_size()
         self.rect = self.image.get_rect(center=self.START_POS)
-        self.angle = -75
+        self.angle = 40
         self.score = 0
+        self.key = 0
         
         self.sensorsLengths = [0, 0, 0, 0, 0]
         
@@ -66,7 +68,6 @@ class Car(pg.sprite.Sprite):
     def moveBack(self):
         self.moved = True
         self.vel = min(self.vel - self.acceleration, -self.maxVel)
-        print(self.maxVel)
         self.move()
         
     def move(self):
@@ -86,12 +87,18 @@ class Car(pg.sprite.Sprite):
         self.checkIfCarIsMoving()
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
+        print(self.score)
+        offset = Vector2(40, 0)
+        offset.rotate_ip(-self.angle-90)
+        position = Vector2(self.x+5, self.y) + offset
+        
         for i, sensor_placement in enumerate([130, 150, 180, -150, -130]):
             self.sensorsLengths[i] = self.sensors(sensor_placement)
         for line in lines:
-            if self.rect.colliderect(line.rect):
-                self.score += 1
-                print(self.rect.colliderect(line.rect))    
+            if screen.get_at((int(position.x), int(position.y))) == pg.Color(0,0,4):
+                if line.key - 1 == self.key:
+                    self.score += 1
+                    self.key = line.key
             
     def checkIfCarIsMoving(self):
         if not self.moved:
@@ -124,10 +131,11 @@ class Car(pg.sprite.Sprite):
         return self.sensorsLengths
     
 class Line(pg.sprite.Sprite):
-    def __init__(self, start, end):
+    def __init__(self, start, end, i):
         super().__init__()
         self.start = start
         self.end = end
+        self.key = i
         self.rect = pg.Rect(start, (end[0] - start[0], end[1] - start[1]))
 
 def game():
@@ -137,8 +145,8 @@ def game():
     clock = pg.time.Clock()
     line_positions = load_line_positions('lines.txt')
     lines = pg.sprite.Group()
-    for pos in line_positions:
-        line = Line((pos[0], pos[1]), (pos[2], pos[3]))
+    for i, pos in enumerate(line_positions):
+        line = Line((pos[0], pos[1]), (pos[2], pos[3]), i)
         lines.add(line)
   
     while run:
