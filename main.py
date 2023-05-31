@@ -155,6 +155,13 @@ class NeuralRace:
                 positions.append((x1, y1, x2, y2))
         return positions
     
+    def _update_ui(self):
+        self.display.blit(track_texture, (0,0))
+        self.draw_lines(self.display, self.lines)
+        self.car.draw(self.display)
+        self.car.update(self.lines)
+        pg.display.update()
+    
     def play_step(self):
         self.clock.tick(self.FPS)
         for event in pg.event.get():
@@ -163,10 +170,7 @@ class NeuralRace:
                 game_over = True
                 return game_over, self.score
         
-        self.display.blit(track_texture, (0,0))
         keys = pg.key.get_pressed()
-        self.draw_lines(self.display, self.lines)
-
         if keys[pg.K_LEFT]:
             self.car.sprite.rotate(left=True)
                 
@@ -179,10 +183,7 @@ class NeuralRace:
         elif keys[pg.K_DOWN]:
             self.car.sprite.moveBack()
             
-        self.car.draw(self.display)
-        self.car.update(self.lines)
-        #print(car.sprite.score)
-        pg.display.update()
+        self._update_ui()
         return False, self.score
 
 if __name__ == '__main__':
