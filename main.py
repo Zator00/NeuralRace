@@ -11,16 +11,6 @@ pg.display.set_icon(pygame_icon)
 screen = pg.display.set_mode((width, height))
 track_texture = pg.image.load("race_track_v3.png")
 
-def load_line_positions(filename):
-    positions = []
-    with open(filename, 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            # Rozdzielanie linii na poszczególne wartości
-            x1, y1, x2, y2 = map(int, line.strip().split(','))
-            positions.append((x1, y1, x2, y2))
-    return positions
-
 # Funkcja do rysowania linii na podstawie parametrów położenia
 class Car(pg.sprite.Sprite):
     
@@ -143,7 +133,7 @@ class NeuralRace:
         self.clock = clock = pg.time.Clock()
         self.car = pg.sprite.GroupSingle(Car(2,2))
         self.FPS = 60
-        self.line_positions = load_line_positions('lines.txt')
+        self.line_positions = self.load_line_positions('lines.txt')
         self.lines = pg.sprite.Group()
         for i, pos in enumerate(self.line_positions):
             line = Line((pos[0], pos[1]), (pos[2], pos[3]), i)
@@ -154,6 +144,16 @@ class NeuralRace:
     def draw_lines(self, screen, lines):
      for line in lines:
         pg.draw.line(screen, (0,0,4), line.start, line.end, 2)
+        
+    def load_line_positions(self, filename):
+        positions = []
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                # Rozdzielanie linii na poszczególne wartości
+                x1, y1, x2, y2 = map(int, line.strip().split(','))
+                positions.append((x1, y1, x2, y2))
+        return positions
     
     def play_step(self):
         self.clock.tick(self.FPS)
