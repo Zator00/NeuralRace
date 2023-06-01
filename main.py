@@ -11,21 +11,7 @@ pg.display.set_icon(pygame_icon)
 screen = pg.display.set_mode((width, height))
 track_texture = pg.image.load("race_track_v3.png")
 
-def load_line_positions(filename):
-    positions = []
-    with open(filename, 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            # Rozdzielanie linii na poszczególne wartości
-            x1, y1, x2, y2 = map(int, line.strip().split(','))
-            positions.append((x1, y1, x2, y2))
-    return positions
-
 # Funkcja do rysowania linii na podstawie parametrów położenia
-def draw_lines(screen, lines, car):
-     for line in lines:
-        pg.draw.line(screen, (0,0,4), line.start, line.end, 2)
-
 class Car(pg.sprite.Sprite):
     
     def __init__(self, maxVel, rotationVel):
@@ -87,7 +73,6 @@ class Car(pg.sprite.Sprite):
         self.checkIfCarIsMoving()
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
-        print(self.score)
         offset = Vector2(40, 0)
         offset.rotate_ip(-self.angle-90)
         position = Vector2(self.x+5, self.y) + offset
@@ -95,10 +80,12 @@ class Car(pg.sprite.Sprite):
         for i, sensor_placement in enumerate([130, 150, 180, -150, -130]):
             self.sensorsLengths[i] = self.sensors(sensor_placement)
         for line in lines:
-            if screen.get_at((int(position.x), int(position.y))) == pg.Color(0,0,4):
+            if self.rect.colliderect((line.start[0], line.start[1], line.end[0] - line.start[0], line.end[1] - line.start[1])):
                 if line.key - 1 == self.key:
-                    self.score += 1
+                    self.score += 10
                     self.key = line.key
+                    print(self.score)
+        
             
     def checkIfCarIsMoving(self):
         if not self.moved:
@@ -136,49 +123,80 @@ class Line(pg.sprite.Sprite):
         self.start = start
         self.end = end
         self.key = i
-        self.rect = pg.Rect(start, (end[0] - start[0], end[1] - start[1]))
 
-def game():
-    run = True
-    car = pg.sprite.GroupSingle(Car(2,2))
-    FPS = 60
-    clock = pg.time.Clock()
-    line_positions = load_line_positions('lines.txt')
-    lines = pg.sprite.Group()
-    for i, pos in enumerate(line_positions):
-        line = Line((pos[0], pos[1]), (pos[2], pos[3]), i)
-        lines.add(line)
-  
-    while run:
-        clock.tick(FPS)
+class NeuralRace:
+    def __init__(self, w=900, h=900):
+        self.w = w
+        self.h = h
+        self.icon = pg.image.load('logo.png')
+        self.display = pg.display.set_mode((width, height))
+        self.clock = pg.time.Clock()
+        self.car = pg.sprite.GroupSingle(Car(2,2))
+        self.FPS = 60
+        self.line_positions = self.load_line_positions('lines.txt')
+        self.lines = pg.sprite.Group()
+        for i, pos in enumerate(self.line_positions):
+            line = Line((pos[0], pos[1]), (pos[2], pos[3]), i)
+            self.lines.add(line)
+        
+        self.score = 0
+        
+    def draw_lines(self, screen, lines):
+     for line in lines:
+        pg.draw.line(screen, (0,0,4), line.start, line.end, 2)
+        
+    def load_line_positions(self, filename):
+        positions = []
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                # Rozdzielanie linii na poszczególne wartości
+                x1, y1, x2, y2 = map(int, line.strip().split(','))
+                positions.append((x1, y1, x2, y2))
+        return positions
+    
+    def _update_ui(self):
+        self.display.blit(track_texture, (0,0))
+        self.draw_lines(self.display, self.lines)
+        self.car.draw(self.display)
+        self.car.update(self.lines)
+        self.score = self.car.sprite.score
+        pg.display.update()
+        
+    def get_state(self):
+        return self.car.sprite.getSensorsLength()
+    
+    def play_step(self):
+        self.clock.tick(self.FPS)
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                run = False
-                    
-        screen.blit(track_texture, (0,0))
+                game_over = True
+                return game_over, self.score
         
-        draw_lines(screen, lines, car)
-
         keys = pg.key.get_pressed()
-
         if keys[pg.K_LEFT]:
-            car.sprite.rotate(left=True)
+            self.car.sprite.rotate(left=True)
                 
         elif keys[pg.K_RIGHT]:
-            car.sprite.rotate(right=True)
+            self.car.sprite.rotate(right=True)
             
         if keys[pg.K_UP]:        
-            car.sprite.moveForward()
+            self.car.sprite.moveForward()
 
         elif keys[pg.K_DOWN]:
-            car.sprite.moveBack()
-
-        #print(car.sprite.getSensorsLength())
+            self.car.sprite.moveBack()
         
-        car.draw(screen)
-        car.update(lines)
-        #print(car.sprite.score)
-        pg.display.update()
-    pg.quit()
+        if self.car.sprite.score == 310:
+            return True, self.score
+            
+        self._update_ui()
+        return False, self.score
 
-game()
+if __name__ == '__main__':
+    game = NeuralRace()
+    while True:
+        game_over, score = game.play_step()
+        if game_over == True:
+            break
+    print('Final score', score)
+    pg.quit()
