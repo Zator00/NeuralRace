@@ -162,6 +162,9 @@ class NeuralRace:
         self.car.update(self.lines)
         self.score = self.car.sprite.score
         pg.display.update()
+        
+    def get_state(self):
+        return self.car.sprite.getSensorsLength()
     
     def play_step(self):
         self.clock.tick(self.FPS)
