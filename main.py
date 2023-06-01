@@ -73,7 +73,6 @@ class Car(pg.sprite.Sprite):
         self.checkIfCarIsMoving()
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
-        print(self.score)
         offset = Vector2(40, 0)
         offset.rotate_ip(-self.angle-90)
         position = Vector2(self.x+5, self.y) + offset
@@ -81,10 +80,12 @@ class Car(pg.sprite.Sprite):
         for i, sensor_placement in enumerate([130, 150, 180, -150, -130]):
             self.sensorsLengths[i] = self.sensors(sensor_placement)
         for line in lines:
-            if screen.get_at((int(position.x), int(position.y))) == pg.Color(0,0,4):
+            if self.rect.colliderect((line.start[0], line.start[1], line.end[0] - line.start[0], line.end[1] - line.start[1])):
                 if line.key - 1 == self.key:
-                    self.score += 1
+                    self.score += 10
                     self.key = line.key
+                    print(self.score)
+        
             
     def checkIfCarIsMoving(self):
         if not self.moved:
@@ -122,15 +123,14 @@ class Line(pg.sprite.Sprite):
         self.start = start
         self.end = end
         self.key = i
-        self.rect = pg.Rect(start, (end[0] - start[0], end[1] - start[1]))
 
 class NeuralRace:
     def __init__(self, w=900, h=900):
         self.w = w
         self.h = h
-        self.icon = pygame_icon = pg.image.load('logo.png')
+        self.icon = pg.image.load('logo.png')
         self.display = pg.display.set_mode((width, height))
-        self.clock = clock = pg.time.Clock()
+        self.clock = pg.time.Clock()
         self.car = pg.sprite.GroupSingle(Car(2,2))
         self.FPS = 60
         self.line_positions = self.load_line_positions('lines.txt')
@@ -160,13 +160,13 @@ class NeuralRace:
         self.draw_lines(self.display, self.lines)
         self.car.draw(self.display)
         self.car.update(self.lines)
+        self.score = self.car.sprite.score
         pg.display.update()
     
     def play_step(self):
         self.clock.tick(self.FPS)
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                run = False
                 game_over = True
                 return game_over, self.score
         
@@ -182,6 +182,9 @@ class NeuralRace:
 
         elif keys[pg.K_DOWN]:
             self.car.sprite.moveBack()
+        
+        if self.car.sprite.score == 310:
+            return True, self.score
             
         self._update_ui()
         return False, self.score
