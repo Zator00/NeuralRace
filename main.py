@@ -1,6 +1,7 @@
 import pygame as pg
 from pygame.math import Vector2
 import math
+import numpy as np
 
 width = 900
 height = 900
@@ -166,24 +167,23 @@ class NeuralRace:
     def get_state(self):
         return self.car.sprite.getSensorsLength()
     
-    def play_step(self):
+    def play_step(self, action):
         self.clock.tick(self.FPS)
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 game_over = True
                 return game_over, self.score
         
-        keys = pg.key.get_pressed()
-        if keys[pg.K_LEFT]:
+        if action == -0.5:
             self.car.sprite.rotate(left=True)
                 
-        elif keys[pg.K_RIGHT]:
+        elif action == 0.5:
             self.car.sprite.rotate(right=True)
             
-        if keys[pg.K_UP]:        
+        if action == -1:        
             self.car.sprite.moveForward()
 
-        elif keys[pg.K_DOWN]:
+        elif action == 1:
             self.car.sprite.moveBack()
         
         if self.car.sprite.score == 310:
@@ -192,11 +192,30 @@ class NeuralRace:
         self._update_ui()
         return False, self.score
 
+def choose_action(state, q_table):
+    if np.random.uniform(0, 1) < 0.1:
+        # Wybierz losową akcję
+        action = np.random.choice([-1, -0.5, 0, 0.5, 1])
+    else:
+        # Wybierz akcję na podstawie Q-wartości
+        state_index = np.argmax(state)  # Przekształć stan na indeks
+        q_values = q_table[state_index]
+        action_index = np.argmax(q_values)
+        action = [-1, -0.5, 0, 0.5, 1][action_index]
+    print(action)
+    return action
+
 if __name__ == '__main__':
-    game = NeuralRace()
-    while True:
-        game_over, score = game.play_step()
-        if game_over == True:
-            break
-    print('Final score', score)
+    env = NeuralRace()
+    for episode in range(1000):
+        state = env.get_state()
+        game_over = False
+        score = 0
+        q_table = np.zeros((5, 2))
+        while not game_over:
+            action = choose_action(state, q_table)
+            game_over, score = env.play_step(action)
+            score = score
+        print(f"Episode: {episode + 1}, Score: {score}")
+    print("Training complete!")
     pg.quit()
