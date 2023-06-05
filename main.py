@@ -167,7 +167,7 @@ class NeuralRace:
     def get_state(self):
         return self.car.sprite.getSensorsLength()
     
-    def play_step(self, action):
+    def play_step(self, action, score):
         self.clock.tick(self.FPS)
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -188,9 +188,16 @@ class NeuralRace:
         
         if self.car.sprite.score == 310:
             return True, self.score
+        
+        reward = 0
+        if self.score > score:
+            reward = 10
+        elif self.score < score:
+            reward = -10
+
             
         self._update_ui()
-        return False, self.score
+        return False, self.score, reward
 
 def choose_action(state, q_table):
     if np.random.uniform(0, 1) < 0.1:
@@ -202,7 +209,6 @@ def choose_action(state, q_table):
         q_values = q_table[state_index]
         action_index = np.argmax(q_values)
         action = [-1, -0.5, 0, 0.5, 1][action_index]
-    print(action)
     return action
 
 if __name__ == '__main__':
@@ -214,8 +220,9 @@ if __name__ == '__main__':
         q_table = np.zeros((5, 2))
         while not game_over:
             action = choose_action(state, q_table)
-            game_over, score = env.play_step(action)
-            score = score
+            game_over, new_score, reward = env.play_step(action, score)
+            score = new_score
+            print(reward)
         print(f"Episode: {episode + 1}, Score: {score}")
     print("Training complete!")
     pg.quit()
