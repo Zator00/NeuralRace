@@ -49,6 +49,7 @@ class Car(pg.sprite.Sprite):
         if screen.get_at((int(self.x), int(self.y))) != pg.Color(230,215,150):
             self.vel = min(self.vel + self.acceleration, self.maxVel)
             self.move()
+            self.checkCollision()
         else:
             self.vel = 0
         
@@ -71,6 +72,7 @@ class Car(pg.sprite.Sprite):
         
     def update(self, lines):
         self.moved = False
+        self.checkCollision()
         self.checkIfCarIsMoving()
         self.image = pg.transform.rotate(self.originalImage, self.angle)
         self.rect = self.image.get_rect(center=(self.x,self.y))
@@ -86,6 +88,10 @@ class Car(pg.sprite.Sprite):
                     self.score += 10
                     self.key = line.key
                     print(self.score)
+                    
+                # Zatrzymaj samochód, jeśli uderzył w czarną krawędź toru
+                elif screen.get_at((int(self.x), int(self.y))) == pg.Color(0, 0, 0):
+                    self.vel = 0
         
             
     def checkIfCarIsMoving(self):
@@ -117,6 +123,10 @@ class Car(pg.sprite.Sprite):
     
     def getSensorsLength(self):
         return self.sensorsLengths
+    
+    def checkCollision(self):
+        if screen.get_at((int(self.x+5), int(self.y+5))) == pg.Color(0, 0, 0):
+            self.vel = 0
     
 class Line(pg.sprite.Sprite):
     def __init__(self, start, end, i):
@@ -185,8 +195,8 @@ class NeuralRace:
 
         elif action == 1:
             self.car.sprite.moveBack()
-        
-        if self.car.sprite.score == 310:
+
+        if self.car.sprite.score == 310 or self.car.sprite.vel == 0:
             return True, self.score
             
         self._update_ui()
