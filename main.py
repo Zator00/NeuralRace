@@ -44,7 +44,7 @@ class Car(pg.sprite.Sprite):
         elif right:
             self.angle -= self.rotationVel
 
-        if screen.get_at((int(self.x-20), int(self.y-20))) == pg.Color(0, 0, 0):
+        if screen.get_at((int(self.x-20), int(self.y-20))) == pg.Color(0, 0, 0): #chyba można usunąć ten warunek
             self.vel = 0
             
     def moveForward(self):
