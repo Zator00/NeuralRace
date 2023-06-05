@@ -42,6 +42,12 @@ class Environment:
 # Parametry Q-learning
 num_episodes = 1000
 max_steps_per_episode = 100
+learning_rate = 0.1
+discount_rate = 0.99
+exploration_rate = 1.0
+max_exploration_rate = 1.0
+min_exploration_rate = 0.01
+exploration_decay_rate = 0.001
 
 # Tworzenie sieci neuronowej
 input_size = 5 # Wielkość danych z sensorów odległości
