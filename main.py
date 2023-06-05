@@ -205,7 +205,7 @@ class NeuralRace:
         self._update_ui()
         return False, self.score
 
-def choose_action(state, q_table):
+def choose_action(state, q_table, epsilon):
     if np.random.uniform(0, 1) < 0.1:
         # Wybierz losową akcję
         action = np.random.choice([-1, -0.5, 0, 0.5, 1])
@@ -215,20 +215,58 @@ def choose_action(state, q_table):
         q_values = q_table[state_index]
         action_index = np.argmax(q_values)
         action = [-1, -0.5, 0, 0.5, 1][action_index]
-    print(action)
+    #print(action)
     return action
 
 if __name__ == '__main__':
     env = NeuralRace()
+    epsilon = 1.0  # Początkowa wartość epsilon
+    epsilon_decay = 0.001  # Współczynnik zmniejszania epsilon
+    learning_rate = 0.1  # Współczynnik uczenia
+    discount_rate = 0.99  # Współczynnik dyskontowania
+    q_table = np.zeros((5, 5))  # Tabela Q-wartości
+
+    cars = pg.sprite.Group()
+    for _ in range(5):
+        car = Car(2, 2)
+        cars.add(car)
+
     for episode in range(10000):
-        state = env.get_state()
         game_over = False
-        score = 0
-        q_table = np.zeros((5, 2))
+        scores = [0] * 5
+        q_tables = [np.zeros((5, 5))] * 5
+
         while not game_over:
-            action = choose_action(state, q_table)
-            game_over, score = env.play_step(action)
-            score = score
-        #print(f"Episode: {episode + 1}, Score: {score}")
+            for i, car in enumerate(cars):
+                state = env.get_state()
+                action = choose_action(state, q_tables[i], epsilon)
+                game_over, score = env.play_step(action)
+                scores[i] = score
+
+                # Aktualizacja Q-wartości
+                state_index = np.argmax(state)  # Przekształć stan na indeks
+                action_index = [-1, -0.5, 0, 0.5, 1].index(action)  # Przekształć akcję na indeks
+                next_state = env.get_state()
+                next_state_index = np.argmax(next_state)  # Przekształć nowy stan na indeks
+
+                q_value = q_tables[i][state_index, action_index]
+                max_q_value = np.max(q_tables[i][next_state_index])
+
+                # Oblicz nagrodę/karę
+                reward = scores[i] - car.score
+                if reward > 0:
+                    reward *= 10  # Zwiększ nagrodę za zdobycie punktu
+
+                new_q_value = (1 - learning_rate) * q_value + learning_rate * (reward + discount_rate * max_q_value)
+                q_tables[i][state_index, action_index] = new_q_value
+
+                if game_over:
+                    break
+
+            # Zmniejszanie epsilon po każdym epizodzie
+            epsilon = max(0.1, epsilon - epsilon_decay)
+
+        print(f"Episode: {episode + 1}, Scores: {scores}")
+        
     print("Training complete!")
     pg.quit()
