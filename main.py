@@ -43,10 +43,13 @@ class Car(pg.sprite.Sprite):
             self.angle += self.rotationVel
         elif right:
             self.angle -= self.rotationVel
+
+        if screen.get_at((int(self.x-20), int(self.y-20))) == pg.Color(0, 0, 0):
+            self.vel = 0
             
     def moveForward(self):
         self.moved = True
-        if screen.get_at((int(self.x), int(self.y))) != pg.Color(230,215,150):
+        if screen.get_at((int(self.x-20), int(self.y-20))) != pg.Color(230,215,150):
             self.vel = min(self.vel + self.acceleration, self.maxVel)
             self.move()
             self.checkCollision()
@@ -125,7 +128,7 @@ class Car(pg.sprite.Sprite):
         return self.sensorsLengths
     
     def checkCollision(self):
-        if screen.get_at((int(self.x+5), int(self.y+5))) == pg.Color(0, 0, 0):
+        if screen.get_at((int(self.rect.center[0]-20), int(self.rect.center[1]-20))) == pg.Color(0, 0, 0):
             self.vel = 0
     
 class Line(pg.sprite.Sprite):
@@ -217,7 +220,7 @@ def choose_action(state, q_table):
 
 if __name__ == '__main__':
     env = NeuralRace()
-    for episode in range(1000):
+    for episode in range(10000):
         state = env.get_state()
         game_over = False
         score = 0
@@ -226,6 +229,6 @@ if __name__ == '__main__':
             action = choose_action(state, q_table)
             game_over, score = env.play_step(action)
             score = score
-        print(f"Episode: {episode + 1}, Score: {score}")
+        #print(f"Episode: {episode + 1}, Score: {score}")
     print("Training complete!")
     pg.quit()
